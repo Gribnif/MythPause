@@ -52,7 +52,8 @@ MythPause is a Python script which solves several prominent problems with MythTV
 
   There are lots of options in MythPause, to make it very flexible. But, of course, that can also make it more complex to use:
 
-    MythPause.py [-h] [-i ID] [-x] [-c] [-d] [-v] [-s | -r | -t | -p | -g VALUE | -G | -S VALUE | -C ID | -a]
+      MythPause.py [-h] [-i ID] [-x] [-c] [-d] [-v]
+                   [-s | -r | -t | -p | -g VALUE | -G | -S VALUE | -C ID | -a]
 
   All arguments are optional, however you must supply at least one "action", as described below.
 
@@ -62,18 +63,26 @@ MythPause is a Python script which solves several prominent problems with MythTV
       Show a help message and exit.
 
     -i ID, --id ID
-      Set the unique identifier for the saved/resumed position. If no ID is supplied, the ID ".default" is used.
+      Set the unique identifier for the saved/resumed position. If no ID is
+      supplied, the ID ".default" is used.
 
-      This option allows you to permanently save multiple locations. The ID you supply is limited to alphanumeric characters, underscore, and hyphen; any other characters are removed. If your MythTV database is case-sensitive, then the ID will be, too (but the default for MySQL databases is not case-sensitive.)
+      This option allows you to permanently save multiple locations. The ID you
+      supply is limited to alphanumeric characters, underscore, and hyphen; any
+      other characters are removed. If your MythTV database is case-sensitive,
+      then the ID will be, too (but the default for MySQL databases is not
+      case-sensitive.)
 
     -x, --stop
-      Stop playback. This can be combined with other actions, such as --save, or --current.
+      Stop playback. This can be combined with other actions, such as --save,
+      or --current.
 
     -c, --clear
-      Clear saved position (not valid with --save, --toggle, --set or --clear-all.)
+      Clear saved position (not valid with --save, --toggle, --set or
+      --clear-all.)
 
     -d, --debug
-      Don't actually write changes or alter the frontend's behavior; assumes --verbose
+      Don't actually write changes or alter the frontend's behavior; assumes
+      --verbose
 
     -v, --verbose
       Give verbose output.
@@ -89,7 +98,10 @@ MythPause is a Python script which solves several prominent problems with MythTV
 ####Actions; at least one of these is required:
 
     -s, --save
-      Save position, using the given --id or ".default". This command can be combined with --stop to stop playback, among other options. If playback is currently paused, this fact is not saved; when resuming, playback will restart automatically. These types of information can be saved:
+      Save position, using the given --id or ".default". This command can be
+      combined with --stop to stop playback, among other options. If playback is
+      currently paused, this fact is not saved; when resuming, playback will
+      restart automatically. These types of information can be saved:
 
       - Playback of recordings: program, position, speed
       - Playback of videos: file name, position, speed
@@ -97,25 +109,36 @@ MythPause is a Python script which solves several prominent problems with MythTV
       - Other menu locations
 
     -r, --resume
-      Restore the previously saved position, using the given --id or ".default". This command can be combined with --clear to clear the bookmark, among other options.
+      Restore the previously saved position, using the given --id or ".default".
+      This command can be combined with --clear to clear the bookmark, among
+      other options.
 
     -t, --toggle
-      If the position is not yet saved, save it and stop playback; otherwise, resume at the saved location. It is useful to include --clear with this command, to clear the saved value after resuming (--clear has no effect if the position is not yet saved.)
+      If the position is not yet saved, save it and stop playback; otherwise,
+      resume at the saved location. It is useful to include --clear with this
+      command, to clear the saved value after resuming (--clear has no effect if
+      the position is not yet saved.)
 
     -p, --current
-      Print the frontend's current position. The printed string can be used later on with --set or --go.
+      Print the frontend's current position. The printed string can be used
+      later on with --set or --go.
 
     -g VALUE, --go VALUE
-      Go to the given location, using the output from --get or --current. Remember that you may have to enclose the string in quotes, to keep spaces and other characters from being interpreted by the shell.
+      Go to the given location, using the output from --get or --current.
+      Remember that you may have to enclose the string in quotes, to keep spaces
+      and other characters from being interpreted by the shell.
 
     -G, --get
       Get and print a saved position, using the given --id or ".default".
 
     -S VALUE, --set VALUE
-      Save a position, using the output from --get or --current. Remember that you may have to enclose the string in quotes, to keep spaces and other characters from being interpreted by the shell.
+      Save a position, using the output from --get or --current. Remember that
+      you may have to enclose the string in quotes, to keep spaces and other
+      characters from being interpreted by the shell.
 
-    -C ID, --copy-to NEW_ID
-      Copy a previously saved position to a new slot using NEW_ID. The source of the copy is either the value of --id, or ".default".
+    -C NEW_ID, --copy-to NEW_ID
+      Copy a previously saved position to a new slot using NEW_ID. The source of
+      the copy is either the value of --id, or ".default".
 
     -a, --clear-all
       Clear all saved positions
