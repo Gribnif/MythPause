@@ -1,66 +1,267 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
+
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Mythpause by Gribnif</title>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Mythpause : Command line script to pause and resume MythTV recordings/videos with unlimited bookmarks" />
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Mythpause</title>
   </head>
+
   <body>
-    <div class="wrapper">
-      <header>
-        <h1>Mythpause</h1>
-        <p>Command line script to pause and resume MythTV recordings/videos with unlimited bookmarks</p>
 
-        <p class="view"><a href="https://github.com/Gribnif/MythPause">View the Project on GitHub <small>Gribnif/MythPause</small></a></p>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/Gribnif/MythPause">View on GitHub</a>
 
+          <h1 id="project_title">Mythpause</h1>
+          <h2 id="project_tagline">Command line script to pause and resume MythTV recordings/videos with unlimited bookmarks</h2>
 
-        <ul>
-          <li><a href="https://github.com/Gribnif/MythPause/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/Gribnif/MythPause/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/Gribnif/MythPause">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
-        <h3>Welcome to GitHub Pages.</h3>
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/Gribnif/MythPause/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/Gribnif/MythPause/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p><a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=SHJS5JWZTXSQW"><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" alt="Donate to this project using PayPal"></a></p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
+<h2>Introduction</h2>
+
+<p>MythPause is a Python script which solves several prominent problems with MythTV:</p>
+
+<h3>Scenario 1:</h3>
+
+<p>You're watching a program in the living room, and it's dinner time. You want to continue the program on the frontend in the kitchen, but getting back to the exact program and location you were just watching takes a lot of button presses on the remote.</p>
+
+<p>MythPause will let you create a single key press on your remote control which saves the position and stops the frontend then, when you use your remote on the second frontend, the same key press resumes playback at the exact location you were just viewing.</p>
+
+<h3>Scenario 2:</h3>
+
+<p>Your kids want to watch the same parts of their favorite movies--not the whole thing--over, and over, and over. You could use the bookmark feature, but that still means having to find the movie. You also can't store more than one bookmark per movie.</p>
+
+<p>With MythPause, you can set up any number of bookmarks that, when activated, resume playback at the chosen location with a single command. They can even be added to a menu inside the frontend, to make it easy for the kids to use.</p>
+
+<h3>Scenario 3:</h3>
+
+<p>You use MythTV's bookmark feature to save the start of programs that get viewed over and over. So, what if you're in the middle of watching and want to continue watching where you left off? If you save the traditional bookmark, finding the program start will be difficult the next time you want to start over.</p>
+
+<p>MythPause saves its positions into its own part of the database, so you can use it without affecting the built-in bookmark.</p>
+
+<h3>Scenario 4:</h3>
+
+<p>You're looking for another way to drill down to some of the harder to reach jump points, like Weather or Images, using a remote control key press.</p>
+
+<p>You can do that, too, using MythPause!</p>
+
+<h2>Requirements:</h2>
+
+<ul>
+<li>MythTV Python bindings, version 0.25. This script may work with 0.24 or 0.26, but these versions are untested.</li>
+<li>The "argparse" module, which is included with Python 2.7 or newer. If you use an older verison of Python, it can be installed using the "python-argparse" package (with yum, apt-get, etc.), or with "sudo easy_install argparse".</li>
+<li>The frontend's network control socket must be enabled. See this page for more information:  <a href="http://www.mythtv.org/docs/mythtv-HOWTO-11.html#ss11.5">http://www.mythtv.org/docs/mythtv-HOWTO-11.html#ss11.5</a>
+</li>
+</ul><h2>Typical setup:</h2>
+
+<ol>
+<li>
+<p>Figure out what user runs mythfrontend, and copy the script somewhere so that user can run it. For example:</p>
+
+<p><code>$ ps auxw | grep mythfrontend</code>
+ <code>$ sudo cp MythPause.py /usr/local/share/mythtv</code></p>
+</li>
+<li>
+<p>Make the script executable:</p>
+
+<p><code>$ sudo chmod 755 /usr/local/share/mythtv/MythPause.py</code></p>
+</li>
+</ol><h2>Calling from the command line:</h2>
+
+<p>There are lots of options in MythPause, to make it very flexible. But, of course, that can also make it more complex to use:</p>
+
+<pre><code>MythPause.py [-h] [-i ID] [-x] [-c] [-d] [-v] [-s | -r | -t | -p | -g VALUE | -G | -S VALUE | -C ID | -a]
 </code></pre>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<p>All arguments are optional, however you must supply at least one "action", as described below.</p>
 
-<h3>Designer Templates</h3>
+<h4>Optional arguments:</h4>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+<pre><code>-h, --help
+  Show a help message and exit.
 
-<h3>Rather Drive Stick?</h3>
+-i ID, --id ID
+  Set the unique identifier for the saved/resumed position. If no ID is supplied, the ID ".default" is used.
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+  This option allows you to permanently save multiple locations. The ID you supply is limited to alphanumeric characters, underscore, and hyphen; any other characters are removed. If your MythTV database is case-sensitive, then the ID will be, too (but the default for MySQL databases is not case-sensitive.)
 
-<h3>Authors and Contributors</h3>
+-x, --stop
+  Stop playback. This can be combined with other actions, such as --save, or --current.
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+-c, --clear
+  Clear saved position (not valid with --save, --toggle, --set or --clear-all.)
 
-<h3>Support or Contact</h3>
+-d, --debug
+  Don't actually write changes or alter the frontend's behavior; assumes --verbose
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+-v, --verbose
+  Give verbose output.
+</code></pre>
+
+<h4>Frontend connection:</h4>
+
+<pre><code>-H HOSTNAME, --host HOSTNAME
+  Hostname of frontend (defaults to value from config file)
+
+-P PORT, --port PORT
+  Port number of frontend socket (defaults to 6546)
+</code></pre>
+
+<h4>Actions; at least one of these is required:</h4>
+
+<pre><code>-s, --save
+  Save position, using the given --id or ".default". This command can be combined with --stop to stop playback, among other options. If playback is currently paused, this fact is not saved; when resuming, playback will restart automatically. These types of information can be saved:
+
+  - Playback of recordings: program, position, speed
+  - Playback of videos: file name, position, speed
+  - Live TV: channel
+  - Other menu locations
+
+-r, --resume
+  Restore the previously saved position, using the given --id or ".default". This command can be combined with --clear to clear the bookmark, among other options.
+
+-t, --toggle
+  If the position is not yet saved, save it and stop playback; otherwise, resume at the saved location. It is useful to include --clear with this command, to clear the saved value after resuming (--clear has no effect if the position is not yet saved.)
+
+-p, --current
+  Print the frontend's current position. The printed string can be used later on with --set or --go.
+
+-g VALUE, --go VALUE
+  Go to the given location, using the output from --get or --current. Remember that you may have to enclose the string in quotes, to keep spaces and other characters from being interpreted by the shell.
+
+-G, --get
+  Get and print a saved position, using the given --id or ".default".
+
+-S VALUE, --set VALUE
+  Save a position, using the output from --get or --current. Remember that you may have to enclose the string in quotes, to keep spaces and other characters from being interpreted by the shell.
+
+-C ID, --copy-to NEW_ID
+  Copy a previously saved position to a new slot using NEW_ID. The source of the copy is either the value of --id, or ".default".
+
+-a, --clear-all
+  Clear all saved positions
+</code></pre>
+
+<h2>Examples:</h2>
+
+<h3>I. Create a series of bookmarks to commonly-viewed programs:</h3>
+
+<ol>
+<li>Start playback of the first program to be saved.</li>
+<li>Move to the desired position. Pause playback, to make the saved position more accurate.</li>
+<li>Call the script:<br><code>$ MythPause.py --id Bookmark1 --save</code>
+</li>
+<li>Repeat steps 1-3 for the remaining programs, using a different value for --id.</li>
+<li>You can resume using a bookmark with a command like this:<br><code>$ MythPause.py --id Bookmark1 --resume</code>
+</li>
+<li>
+<p>You can optionally tie these commands to menu entries by creating a copy of the XML files that make up the menu structure. See this page for more details:</p>
+
+<p><a href="http://www.mythtv.org/wiki/Menu_theme_development_guide">http://www.mythtv.org/wiki/Menu_theme_development_guide</a></p>
+
+<p>If you would like to run these commands from buttons on your remote control, see the section below on using LIRC's irexec.</p>
+</li>
+</ol><h3>II. Create a single command that is assigned to a button and pauses/resumes playback at the current location:</h3>
+
+<p>Simply use this command:</p>
+
+<pre><code>  $ MythPause.py --toggle --clear
+</code></pre>
+
+<p>To run it from a button on your remote control, see the section below on using LIRC's irexec.</p>
+
+<h3>III. Custom Jump Points:</h3>
+
+<ol>
+<li>Go to a place in the frontend menus you would like to be able to return to easily.</li>
+<li>
+<p>Either use the method described in Example I, above, to save the locations using named bookmarks, or use:</p>
+
+<p><code>$ MythPause.py --current</code></p>
+
+<p>to see what value to use for the current menu, then use the --go command whenever you want to return to that location. For instance, if you were at the Watch Videos screen, you would get:</p>
+
+<p><code>$ MythPause.py --current</code>
+<code>mythvideo</code></p>
+
+<p>Which means you would use this command to return there later on:</p>
+
+<p><code>$ MythPause.py --go mythvideo</code></p>
+
+<p>Remember that you may have to enclose the argument to --go in quotes, to keep spaces and other characters from being interpreted by the shell.</p>
+</li>
+</ol><h2>Using with LIRC's irexec:</h2>
+
+<p>To call this script from a remote control key press, you should consider using the irexec program that comes with LIRC. For each key press, add a new section to ~/.mythtv/lircrc, with the line "prog = irexec". Here is an example:</p>
+
+<pre><code>begin
+  prog = irexec
+  button = dvd273-p12
+  config = python /usr/local/share/mythtv/MythPause.py -i Toggle --toggle --clear -H tiny2
+end
+</code></pre>
+
+<p>The "button =" line defines the button press which will activate the command. The easiest way to figure this out is to use the command "irw".</p>
+
+<p>The "config =" line defines the program to run. In this case, MythPause.py is being passed as an argument to "python", in case it is not executable. The remainder of the command line is passed to MythPause.py, and tells it to:</p>
+
+<ul>
+<li>use an id of "Toggle" (-i)</li>
+<li>toggle save/resume (--toggle)</li>
+<li>clear the saved state, if it's being restored (--clear)</li>
+<li>
+<p>use the frontend on host "tiny2" (-H)</p>
+
+<p>For more information on common problems when using irexec, see:</p>
+
+<p><a href="http://www.linuxquestions.org/questions/linux-software-2/execute-script-with-irexec-from-mythtv-629861/">http://www.linuxquestions.org/questions/linux-software-2/execute-script-with-irexec-from-mythtv-629861/</a></p>
+</li>
+</ul><h2>Known Bugs and Limitations:</h2>
+
+<ul>
+<li>
+<p>There is a known bug in current (as of 9/1/12) versions of MythTV regarding playback of recorded programs from the network control socket used by this script.</p>
+
+<p>If you have set the option to ask whether or not to save the traditional bookmark upon exiting a recording, it is ignored when exiting a recording that was started with the control socket. This bug does not affect videos. See this page for more information:</p>
+
+<p><a href="http://code.mythtv.org/trac/ticket/11055">http://code.mythtv.org/trac/ticket/11055</a></p>
+</li>
+<li>
+<p>Whenever a program asks a frontend to stop playback using the documented command, the traditional bookmark is saved. This is a bad thing if you want the bookmark to remain unaltered, so that you can always start at that place in the recording.</p>
+
+<p>Therefore, when this script's --stop or --toggle option is used, it sends a keystroke to the frontend, as though the Escape key on a keyboard had been pressed. This is the default key for exiting a recording, but if you have redefined it, playback will not stop.</p>
+
+<p>Also, if you have enabled the prompt to ask whether to save the bookmark when stopping, the prompt will appear. This can be confusing when using the --toggle command, since the prompt asks you to save a "bookmark", which is different from the type of bookmark provided by this script. When using --toggle, you should answer "Do not save, just exit to the menu".</p>
+</li>
+</ul>
       </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/Gribnif">Gribnif</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Mythpause maintained by <a href="https://github.com/Gribnif">Gribnif</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
+
     
+
   </body>
 </html>
