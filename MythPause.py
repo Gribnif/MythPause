@@ -147,7 +147,7 @@ def cond_clear():
 
 # Clear the saved location
 def clear():
-  global var_name
+  global var_name, kClearSettingValue
   verbose('Clearing saved position for {0}'.format(var_name))
   be = open_be()
   if args.debug:
