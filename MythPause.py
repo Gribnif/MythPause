@@ -124,7 +124,6 @@ def resume(location):
       fe = open_fe()
       verbose('Sending {0}'.format(str))
       http_get(fe, '/Frontend/' + str)
-      close_fe()
 
 # If --stop is set, stop playback
 def cond_stop():
@@ -169,9 +168,10 @@ def get_var_name(id):
 # Open a frontend connection
 def open_fe():
   global fe
-  if fe is None:
-    verbose('Opening frontend connection using {0}:{1}'.format(args.frontend, args.frontend_port))
-    fe = httplib.HTTPConnection(args.frontend, args.frontend_port)
+  if fe is not None:
+    close_fe()
+  verbose('Opening frontend connection using {0}:{1}'.format(args.frontend, args.frontend_port))
+  fe = httplib.HTTPConnection(args.frontend, args.frontend_port)
   return fe
 
 # Close frontend connection
@@ -184,10 +184,18 @@ def close_fe():
 # Open a backend connection
 def open_be():
   global be
-  if be is None:
-    verbose('Opening backend connection using {0}:{1}'.format(args.backend, args.backend_port))
-    be = httplib.HTTPConnection(args.backend, args.backend_port)
+  if be is not None:
+    close_be()
+  verbose('Opening backend connection using {0}:{1}'.format(args.backend, args.backend_port))
+  be = httplib.HTTPConnection(args.backend, args.backend_port)
   return be
+
+# Close backend connection
+def close_be():
+  global be
+  if be is not None:
+    be.close()
+    be = None
 
 # Use GET to contact the frontend or backend
 def http_get(conn, request):
