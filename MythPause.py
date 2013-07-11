@@ -63,8 +63,10 @@ def get_saved(exit_on_err = False):
   global var_name
   be = open_be()
   data = http_get(be, '/Myth/GetSetting?Key=' + urllib.quote(var_name))
-  if exit_on_err and data is None:
-    sys.exit('There is no saved state with id = {0}'.format(args.id))
+  if data is None or 'SettingList' not in data or 'Settings' not in data['SettingList'] or var_name not in data['SettingList']['Settings'] or data['SettingList']['Settings'][var_name] == '':
+    if exit_on_err:
+      sys.exit('There is no saved state with id = {0}'.format(args.id))
+    return None
   return data['SettingList']['Settings'][var_name]
 
 # Query the current location from the frontend
@@ -93,6 +95,8 @@ def get_current():
       location = status_resp['FrontendStatus']['State']['state']
       if location == 'WatchingVideo':
         location = 'PlayVideo?Id=' + status_resp['FrontendStatus']['State']['programid'] + '|SendAction?Action=SEEKABSOLUTE&Value=' + status_resp['FrontendStatus']['State']['secondsplayed']
+      elif location == 'WatchingPreRecorded':
+        location = 'PlayRecording?ChanId=' + status_resp['FrontendStatus']['State']['chanid'] + '&StartTime=' + status_resp['FrontendStatus']['State']['starttime'] + '|SendAction?Action=SEEKABSOLUTE&Value=' + status_resp['FrontendStatus']['State']['secondsplayed']
     verbose('Current location = {0}'.format(location))
     get_current.last_location = location
   return get_current.last_location
