@@ -94,9 +94,9 @@ def get_current():
     else:
       location = status_resp['FrontendStatus']['State']['state']
       if location == 'WatchingVideo':
-        location = 'PlayVideo?Id=' + status_resp['FrontendStatus']['State']['programid'] + '|SendAction?Action=SEEKABSOLUTE&Value=' + status_resp['FrontendStatus']['State']['secondsplayed']
+        location = 'PlayVideo?Id=' + status_resp['FrontendStatus']['State']['programid'] + '|pause|SendAction?Action=SEEKABSOLUTE&Value=' + status_resp['FrontendStatus']['State']['secondsplayed']
       elif location == 'WatchingPreRecorded':
-        location = 'PlayRecording?ChanId=' + status_resp['FrontendStatus']['State']['chanid'] + '&StartTime=' + status_resp['FrontendStatus']['State']['starttime'] + '|SendAction?Action=SEEKABSOLUTE&Value=' + status_resp['FrontendStatus']['State']['secondsplayed']
+        location = 'PlayRecording?ChanId=' + status_resp['FrontendStatus']['State']['chanid'] + '&StartTime=' + status_resp['FrontendStatus']['State']['starttime'] + '|pause|SendAction?Action=SEEKABSOLUTE&Value=' + status_resp['FrontendStatus']['State']['secondsplayed']
     verbose('Current location = {0}'.format(location))
     get_current.last_location = location
   return get_current.last_location
@@ -118,7 +118,10 @@ def resume(location):
   verbose('Resuming playback using location = {0}'.format(location))
   cmds = location.split('|')
   for str in cmds:
-    if args.debug:
+    if str == 'pause':
+      verbose('Pausing')
+      time.sleep(0.5)
+    elif args.debug:
       verbose('Would have sent {0}'.format(str))
     else:
       fe = open_fe()
@@ -204,6 +207,7 @@ def http_get(conn, request):
   r = conn.getresponse()
   result = r.read()
   if r.status == 200:
+    verbose('Response: ' + result)
     return json.loads(result)
 
 # Use POST to contact the frontend or backend
