@@ -26,13 +26,14 @@ try:
 except:
   sys.exit('The Python argparse module is required. Try installing the "python-argparse" package, or using "easy_install argparse".')
 
-mode_error = 'At least one of --save (-s), --resume (-r), --toggle (-t), --current (-p), --go (-g), --get (-G), --set (-S), --copy-to (-C), --stop (-x), or --clear (-c) is required.';
+mode_error = 'At least one of --save (-s), --resume (-r), --toggle (-t), --swap (-w), --current (-p), --go (-g), --get (-G), --set (-S), --copy-to (-C), --stop (-x), or --clear (-c) is required.';
 parser = argparse.ArgumentParser(description='Save the current MythTV playback location for future resumption, either on this frontend or another. The positions of recordings, videos, live TV, and certain jump points can be saved.', epilog=mode_error)
 parser.add_argument('-i', '--id', default='.default', help='unique identifier for the saved/resumed position')
 group = parser.add_mutually_exclusive_group()
 group.add_argument('-s', '--save', action='store_true', help='save position')
 group.add_argument('-r', '--resume', action='store_true', help='restore previously saved position')
 group.add_argument('-t', '--toggle', action='store_true', help='if the position is not yet saved, save it and stop playback; otherwise, resume the saved state')
+group.add_argument('-w', '--swap', action='store_true', help='swap the current position with the saved state')
 group.add_argument('-p', '--current', action='store_true', help="print the frontend's current position")
 group.add_argument('-g', '--go', metavar='VALUE', help='go to the given location, using the output from --get or --current')
 group.add_argument('-G', '--get', action='store_true', help='get and print a saved position')
@@ -244,6 +245,16 @@ elif args.toggle:
   else:
     resume(data)
     cond_clear()
+  acted = True
+elif args.swap:
+  data = get_saved()
+  current = get_current()
+  if data is None:
+    verbose('No previous saved position')
+    stop()
+  else:
+    resume(data)
+  save(current)
   acted = True
 elif args.current:
   print get_current()
