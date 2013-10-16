@@ -119,6 +119,18 @@ MythPause is a Python script which solves several prominent problems with MythTV
       command, to clear the saved value after resuming (--clear has no effect if
       the position is not yet saved.)
 
+      One flaw with this mode is the case where someone saves the position but
+      does not resume it soon after. If another person uses the remote, they end
+      up jumping to an unexpected recording/location instead of saving where
+      they were. For an alternative approach, see --toggle, below.
+
+    -w, --swap
+      Swap the current position with the saved position. If no position is
+      already saved, playback will stop and you will be returned to the menu.
+      This mode can be preferable to --toggle, because in the case where someone
+      saves a position but does not resume it right away, the next person to use
+      the command does not get unexpected results.
+
     -p, --current
       Print the frontend's current position. The printed string can be used
       later on with --set or --go.

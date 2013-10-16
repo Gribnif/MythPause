@@ -1,5 +1,5 @@
 #  MythPause.py
-#  Copyright 2012 Dan Wilga
+#  Copyright 2013 Dan Wilga
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -16,35 +16,41 @@
 
 import sys
 import re
+import json
+import httplib
+import urllib
+import time
 
 try:
   import argparse
 except:
   sys.exit('The Python argparse module is required. Try installing the "python-argparse" package, or using "easy_install argparse".')
 
-mode_error = 'At least one of --save (-s), --resume (-r), --toggle (-t), --current (-p), --go (-g), --get (-G), --set (-S), --copy-to (-C), --clear-all (-a), --stop (-x), or --clear (-c) is required.';
+mode_error = 'At least one of --save (-s), --resume (-r), --toggle (-t), --swap (-w), --current (-p), --go (-g), --get (-G), --set (-S), --copy-to (-C), --stop (-x), or --clear (-c) is required.';
 parser = argparse.ArgumentParser(description='Save the current MythTV playback location for future resumption, either on this frontend or another. The positions of recordings, videos, live TV, and certain jump points can be saved.', epilog=mode_error)
 parser.add_argument('-i', '--id', default='.default', help='unique identifier for the saved/resumed position')
 group = parser.add_mutually_exclusive_group()
 group.add_argument('-s', '--save', action='store_true', help='save position')
 group.add_argument('-r', '--resume', action='store_true', help='restore previously saved position')
 group.add_argument('-t', '--toggle', action='store_true', help='if the position is not yet saved, save it and stop playback; otherwise, resume the saved state')
+group.add_argument('-w', '--swap', action='store_true', help='swap the current position with the saved state')
 group.add_argument('-p', '--current', action='store_true', help="print the frontend's current position")
 group.add_argument('-g', '--go', metavar='VALUE', help='go to the given location, using the output from --get or --current')
 group.add_argument('-G', '--get', action='store_true', help='get and print a saved position')
 group.add_argument('-S', '--set', metavar='VALUE', help='save a position, using the output from --get or --current')
 group.add_argument('-C', '--copy-to', metavar='NEW_ID', help='copy previously saved position to a new slot using NEW_ID')
-group.add_argument('-a', '--clear-all', action='store_true', help='clear all saved positions')
 parser.add_argument('-x', '--stop', action='store_true', help='stop playback')
-parser.add_argument('-c', '--clear', action='store_true', help='clear saved position (not valid with --save, --toggle, --set or --clear-all)')
-parser.add_argument('-H', '--host', metavar='HOSTNAME', help='Hostname of frontend (defaults to value from config file)')
-parser.add_argument('-P', '--port', metavar='PORT', help='Port number of frontend socket (defaults to 6546)')
+parser.add_argument('-c', '--clear', action='store_true', help='clear saved position (not valid with --save, --toggle, or --set)')
+parser.add_argument('-F', '--frontend', default='localhost', metavar='HOSTNAME', help='hostname of frontend (defaults to localhost)')
+parser.add_argument('-f', '--frontend-port', default=6547, metavar='PORT', help='port number of frontend socket (defaults to 6547)')
+parser.add_argument('-B', '--backend', default='localhost', metavar='HOSTNAME', help='hostname of backend (defaults to localhost)')
+parser.add_argument('-b', '--backend-port', default=6544, metavar='PORT', help='port number of backend socket (defaults to 6544)')
 parser.add_argument('-d', '--debug', action='store_true', help="don't actually write changes or alter the frontend's behavior; assumes --verbose")
 parser.add_argument('-v', '--verbose', action='store_true', help='verbose output')
-#host/port/username/password
 
-global args, fe, db, var_name
-fe = db = None
+global args, fe, db, var_name, kClearSettingValue
+fe = be = None
+kClearSettingValue = "<clear_setting_value>"    # from libs/libmythbase/mythdb.cpp
 
 args = parser.parse_args()
 
@@ -56,31 +62,42 @@ def verbose(val):
 # Read a saved location from the database
 def get_saved(exit_on_err = False):
   global var_name
-  db = open_db()
-  data = db.settings.NULL[var_name];
-  if exit_on_err and data is None:
-    sys.exit('There is no saved state with id = {0}'.format(args.id))
-  return data
+  be = open_be()
+  data = http_get(be, '/Myth/GetSetting?Key=' + urllib.quote(var_name))
+  if data is None or 'SettingList' not in data or 'Settings' not in data['SettingList'] or var_name not in data['SettingList']['Settings'] or data['SettingList']['Settings'][var_name] == '':
+    if exit_on_err:
+      sys.exit('There is no saved state with id = {0}'.format(args.id))
+    return None
+  return data['SettingList']['Settings'][var_name]
 
 # Query the current location from the frontend
 def get_current():
   if not hasattr(get_current, "last_location"):
     fe = open_fe()
-    location = fe.sendQuery('location')
-    verbose('Location = {0}'.format(location))
-    if location in set(['visualizerview', 'searchview', 'playlisteditorview', 'playlistview']):
-      location = 'playmusic'
+    status_resp = http_get(fe, '/Frontend/GetStatus')
+    verbose('Status_resp = {0}'.format(status_resp))
+    if 'currentlocation' in status_resp['FrontendStatus']['State']:
+      xlate = {
+        'playbackbox' : 'TV Recording Playback',
+        'mythvideo' : 'Video Default',
+        'mainmenu' : 'Main Menu',
+        'mythgallery' : 'MythGallery',
+        'GameUI' : 'MythGame',
+        'mythnews' : 'MythNews',
+        'guidegrid' : 'Program Guide',
+        'ViewScheduled' : 'VIEWSCHEDULED',
+      }
+      location = status_resp['FrontendStatus']['State']['currentlocation']
+      verbose('Location = {0}'.format(location))
+      if location not in xlate:
+        sys.exit('Unknown location {0}'.format(location))
+      location = 'SendAction?Action=' + urllib.quote(xlate[location])
     else:
-      matches = re.match(r'Playback (Recorded|LiveTV) (\d\d?:\d\d(?::\d\d)?) of \S+ ([\d\.]+x|pause) (\d+) (\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d) ', location)
-      if matches:
-        if matches.group(1) == 'Recorded':
-          location = 'recorded|program ' + matches.group(4) + ' ' + matches.group(5) + '|seek ' + fix_seek(matches.group(2)) + fix_speed(matches.group(3));
-        else:
-          location = 'livetv|chanid ' + matches.group(4)
-      else:
-        matches = re.match(r'Playback Video (\d\d?:\d\d(?::\d\d)?) ([\d\.]+x) (.*?) \d+ [\d\.]+$', location)
-        if matches:
-          location = 'video|file ' + matches.group(3) + '|seek ' + fix_seek(matches.group(1)) + fix_speed(matches.group(2))
+      location = status_resp['FrontendStatus']['State']['state']
+      if location == 'WatchingVideo':
+        location = 'PlayVideo?Id=' + status_resp['FrontendStatus']['State']['programid'] + '|pause|SendAction?Action=SEEKABSOLUTE&Value=' + status_resp['FrontendStatus']['State']['secondsplayed']
+      elif location == 'WatchingPreRecorded':
+        location = 'PlayRecording?ChanId=' + status_resp['FrontendStatus']['State']['chanid'] + '&StartTime=' + status_resp['FrontendStatus']['State']['starttime'] + '|pause|SendAction?Action=SEEKABSOLUTE&Value=' + status_resp['FrontendStatus']['State']['secondsplayed']
     verbose('Current location = {0}'.format(location))
     get_current.last_location = location
   return get_current.last_location
@@ -88,33 +105,29 @@ def get_current():
 # Save a location to the database
 def save(data, to_var_name = None):
   if to_var_name is None:
+    global var_name
     to_var_name = var_name
-  db = open_db()
+  be = open_be()
   if args.debug:
     verbose('Would have saved: {0}'.format(data))
     return
-  with db as cursor:
-    cursor.execute("DELETE FROM settings WHERE `value` = '{0}'".format(to_var_name))
-    cursor.execute("INSERT INTO settings (`value`,data,hostname) VALUES('{0}', '{1}', NULL)".format(to_var_name, data))
+  http_post(be, '/Myth/PutSetting', {'Key' : to_var_name, 'Value' : data})
   verbose('Saved: {0}'.format(data))
 
 # Resume at a previously saved location
 def resume(location):
   verbose('Resuming playback using location = {0}'.format(location))
-  fe = open_fe()
   cmds = location.split('|')
-  mode = cmds.pop(0)
-  if mode == 'livetv':
-    fe.jump.livetv
-  elif len(cmds) == 0:
-    fe.jump[mode]
-  else:
-    for str in cmds:
-      if args.debug:
-        verbose('Would have sent {0}'.format(str))
-      else:
-        verbose('Sending {0}'.format(str))
-        fe.sendPlay(str)
+  for str in cmds:
+    if str == 'pause':
+      verbose('Pausing')
+      time.sleep(0.5)
+    elif args.debug:
+      verbose('Would have sent {0}'.format(str))
+    else:
+      fe = open_fe()
+      verbose('Sending {0}'.format(str))
+      http_get(fe, '/Frontend/' + str)
 
 # If --stop is set, stop playback
 def cond_stop():
@@ -128,13 +141,7 @@ def stop():
   if args.debug:
     verbose('Would have stopped')
   else:
-    # Annoyingly, if a recording is playing and is told to stop, it saves the
-    # traditional bookmark without asking. This can be undesired, so instead
-    # send the Escape keypress, which might not work, either, depending on the
-    # settings.
-    fe.key.escape
-    # If you don't mind the bookmark being set, you can use this instead:
-##    fe.sendPlay('stop')
+    http_get(fe, '/Frontend/SendAction?Action=STOPPLAYBACK')
 
 # If --clear is set, clear the saved location
 def cond_clear():
@@ -143,24 +150,13 @@ def cond_clear():
 
 # Clear the saved location
 def clear():
-  global var_name
+  global var_name, kClearSettingValue
   verbose('Clearing saved position for {0}'.format(var_name))
-  db = open_db()
+  be = open_be()
   if args.debug:
     verbose('Would have cleared the saved position for {0}'.format(var_name))
   else:
-    with db as cursor:
-      cursor.execute("DELETE FROM settings WHERE `value` = '{0}'".format(var_name))
-
-# Clear all saved locations
-def clear_all():
-  verbose('Clearing all saved positions')
-  db = open_db()
-  if args.debug:
-    verbose('Would have cleared all saved positions')
-  else:
-    with db as cursor:
-      cursor.execute("DELETE FROM settings WHERE `value` LIKE 'MythPause%'")
+    http_post(be, '/Myth/PutSetting', {'Key' : var_name, 'Value' : kClearSettingValue})
 
 # Convert an id to a settings variable name
 def get_var_name(id):
@@ -176,47 +172,54 @@ def get_var_name(id):
 # Open a frontend connection
 def open_fe():
   global fe
-  if fe is None:
-    from MythTV import Frontend
-    port = 6546
-    if args.port:
-      port = args.port
-    if args.host:
-      verbose('Opening frontend connection using {0}:{1}'.format(args.host, port))
-      fe = Frontend(args.host, port)
-    else:
-      verbose('Opening frontend connection using defaults')
-      fe = Frontend.fromUPNP().next()
+  if fe is not None:
+    close_fe()
+  verbose('Opening frontend connection using {0}:{1}'.format(args.frontend, args.frontend_port))
+  fe = httplib.HTTPConnection(args.frontend, args.frontend_port)
   return fe
 
-# Open a database connection
-def open_db():
-  global db
-  if db is None:
-    from MythTV import MythDB
-    verbose('Opening database connection')
-    db = MythDB()
-  return db
+# Close frontend connection
+def close_fe():
+  global fe
+  if fe is not None:
+    fe.close()
+    fe = None
 
-# Convert short seek locations to the HH:MM:SS format expected for playback
-def fix_seek(seek):
-  old_seek = seek
-  if len(seek) == 4:
-    seek = '00:0' + seek
-  elif len(seek) == 5:
-    seek = '00:' + seek
-  elif len(seek) == 7:
-    seek = '0' + seek
+# Open a backend connection
+def open_be():
+  global be
+  if be is not None:
+    close_be()
+  verbose('Opening backend connection using {0}:{1}'.format(args.backend, args.backend_port))
+  be = httplib.HTTPConnection(args.backend, args.backend_port)
+  return be
 
-  if seek != old_seek:
-    verbose('Adjusted seek position {0} => {1}'.format(old_seek, seek))
-  return seek
+# Close backend connection
+def close_be():
+  global be
+  if be is not None:
+    be.close()
+    be = None
 
-def fix_speed(speed):
-  if speed[-1] == 'x':
-    return '|speed ' + speed
-  verbose('Omitting speed, because playback is paused')
-  return ''
+# Use GET to contact the frontend or backend
+def http_get(conn, request):
+  verbose('GET ' + request)
+  conn.request('GET', request, headers={'Accept': 'text/javascript'})
+  r = conn.getresponse()
+  result = r.read()
+  if r.status == 200:
+    verbose('Response: ' + result)
+    return json.loads(result)
+
+# Use POST to contact the frontend or backend
+def http_post(conn, url, data):
+  data = urllib.urlencode(data)
+  verbose('POST ' + url + ' ' + data)
+  conn.request('POST', url, data, {'Accept': 'text/javascript', 'Content-type' : 'application/x-www-form-urlencoded'})
+  r = conn.getresponse()
+  if r.status == 200:
+    return json.loads(r.read())
+  verbose('Response: {0} {1}'.format(r.status, r.reason))
 
 #--------------------------------------
 var_name = get_var_name(args.id)
@@ -243,6 +246,16 @@ elif args.toggle:
     resume(data)
     cond_clear()
   acted = True
+elif args.swap:
+  data = get_saved()
+  current = get_current()
+  if data is None:
+    verbose('No previous saved position')
+    stop()
+  else:
+    resume(data)
+  save(current)
+  acted = True
 elif args.current:
   print get_current()
   cond_stop()
@@ -259,10 +272,6 @@ elif args.set:
 elif args.copy_to:
   save(get_saved(True), get_var_name(args.copy_to))
   cond_clear()
-  cond_stop()
-  acted = True
-elif args.clear_all:
-  clear_all()
   cond_stop()
   acted = True
 else:
