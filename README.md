@@ -40,8 +40,8 @@ MythPause is a Python script which solves several prominent problems with MythTV
 
   1. Figure out what user runs mythfrontend, and copy the script somewhere so that user can run it. For example:
 
-     `$ ps auxw | grep mythfrontend`
-     `$ sudo cp MythPause.py /usr/local/share/mythtv`
+        $ ps auxw | grep mythfrontend
+        $ sudo cp MythPause.py /usr/local/share/mythtv
 
   2. Make the script executable:
 
@@ -190,8 +190,8 @@ MythPause is a Python script which solves several prominent problems with MythTV
 
     to see what value to use for the current menu, then use the --go command whenever you want to return to that location. For instance, if you were at the Watch Videos screen, you would get:
 
-    `$ MythPause.py --current`
-    `mythvideo`
+        $ MythPause.py --current
+        mythvideo
 
     Which means you would use this command to return there later on:
 
