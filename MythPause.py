@@ -1,5 +1,5 @@
 #  MythPause.py
-#  Copyright 2013 Dan Wilga
+#  Copyright 2013-2016 Dan Wilga
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -63,11 +63,13 @@ def verbose(val):
 def get_saved(exit_on_err = False):
   global var_name
   be = open_be()
-  data = http_get(be, '/Myth/GetSetting?Key=' + urllib.quote(var_name))
-  if data is None or 'SettingList' not in data or 'Settings' not in data['SettingList'] or var_name not in data['SettingList']['Settings'] or data['SettingList']['Settings'][var_name] == '':
+  data = http_get(be, '/Myth/GetSetting?Key=' + urllib.quote(var_name) + '&HostName=localhost')
+  if data is None or ('String' not in data and ('SettingList' not in data or 'Settings' not in data['SettingList'] or var_name not in data['SettingList']['Settings'] or data['SettingList']['Settings'][var_name] == '')):
     if exit_on_err:
       sys.exit('There is no saved state with id = {0}'.format(args.id))
     return None
+  if 'String' in data:    # >= 0.28
+    return data['String']
   return data['SettingList']['Settings'][var_name]
 
 # Query the current location from the frontend
@@ -86,12 +88,16 @@ def get_current():
         'mythnews' : 'MythNews',
         'guidegrid' : 'Program Guide',
         'ViewScheduled' : 'VIEWSCHEDULED',
+        'WatchingLiveTV' : 'Live TV',
       }
       location = status_resp['FrontendStatus']['State']['currentlocation']
       verbose('Location = {0}'.format(location))
       if location not in xlate:
         sys.exit('Unknown location {0}'.format(location))
-      location = 'SendAction?Action=' + urllib.quote(xlate[location])
+      location = xlate[location]
+      if status_resp['FrontendStatus']['Version'][:5] == 'v0.28' and location == 'VIEWSCHEDULED':
+        sys.exit('Location {0} is unsupported in MythTV 0.28 due to a bug'.format(location))
+      location = 'SendAction?Action=' + urllib.quote(location)
     else:
       location = status_resp['FrontendStatus']['State']['state']
       if location == 'WatchingVideo':
@@ -111,7 +117,7 @@ def save(data, to_var_name = None):
   if args.debug:
     verbose('Would have saved: {0}'.format(data))
     return
-  http_post(be, '/Myth/PutSetting', {'Key' : to_var_name, 'Value' : data})
+  http_post(be, '/Myth/PutSetting', {'Key' : to_var_name, 'Value' : data, 'HostName' : 'localhost'})
   verbose('Saved: {0}'.format(data))
 
 # Resume at a previously saved location
@@ -127,7 +133,7 @@ def resume(location):
     else:
       fe = open_fe()
       verbose('Sending {0}'.format(str))
-      http_get(fe, '/Frontend/' + str)
+      http_post(fe, '/Frontend/' + str, {})
 
 # If --stop is set, stop playback
 def cond_stop():
@@ -141,7 +147,7 @@ def stop():
   if args.debug:
     verbose('Would have stopped')
   else:
-    http_get(fe, '/Frontend/SendAction?Action=STOPPLAYBACK')
+    http_post(fe, '/Frontend/SendAction', {'Action' : 'STOPPLAYBACK'})
 
 # If --clear is set, clear the saved location
 def cond_clear():
@@ -156,7 +162,7 @@ def clear():
   if args.debug:
     verbose('Would have cleared the saved position for {0}'.format(var_name))
   else:
-    http_post(be, '/Myth/PutSetting', {'Key' : var_name, 'Value' : kClearSettingValue})
+    http_post(be, '/Myth/PutSetting', {'Key' : var_name, 'Value' : kClearSettingValue, 'HostName' : 'localhost'})
 
 # Convert an id to a settings variable name
 def get_var_name(id):
